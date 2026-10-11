@@ -1,0 +1,241 @@
+Average Customer Age = 
+AVERAGEX(
+    'adventure_works_dw dim_customer',
+    DATEDIFF(
+        'adventure_works_dw dim_customer'[BirthDate],
+        DATE(2014, 1, 28),
+        YEAR
+    )
+)
+---------------------------------------------------------------------------------------------------------------------
+Average Discount per Order = 
+DIVIDE(
+    [Total Discount],
+    [Total Orders],
+    0
+)
+---------------------------------------------------------------------------------------------------------------------
+Average Sales per Customer = 
+DIVIDE(
+    [Total Sales],
+    DISTINCTCOUNT(
+        'adventure_works_dw dim_customer'[CustomerKey]
+    ),
+    0
+)
+---------------------------------------------------------------------------------------------------------------------
+Average Sales per Order = 
+DIVIDE(
+    [Total Sales],
+    [Total Orders],
+    0
+)
+---------------------------------------------------------------------------------------------------------------------
+Average Sales per Product = 
+DIVIDE(
+    [Total Sales],
+    [Total Products],
+    0
+)
+---------------------------------------------------------------------------------------------------------------------
+Customer Count = 
+DISTINCTCOUNT(
+    'adventure_works_dw dim_customer'[CustomerKey]
+)
+---------------------------------------------------------------------------------------------------------------------
+Customer Sales Contribution % = 
+DIVIDE(
+    [Total Sales],
+    CALCULATE(
+        [Total Sales],
+        ALL('adventure_works_dw dim_customer')
+    ),
+    0
+)
+---------------------------------------------------------------------------------------------------------------------
+Customers per Order = 
+DIVIDE(
+    [Customer Count],
+    [Total Orders],
+    0
+)
+---------------------------------------------------------------------------------------------------------------------
+Customers Under 50 = 
+CALCULATE(
+    [Customer Count],
+    FILTER(
+        'adventure_works_dw dim_customer',
+        DATEDIFF(
+            'adventure_works_dw dim_customer'[BirthDate],
+            DATE(2014, 1, 28),
+            YEAR
+        ) < 50
+            && DATEDIFF(
+                'adventure_works_dw dim_customer'[BirthDate],
+                DATE(2014, 1, 28),
+                YEAR
+            ) >= 0
+    )
+)
+---------------------------------------------------------------------------------------------------------------------
+Customers Under 50 % = 
+DIVIDE(
+    [Customers Under 50],
+    [Customer Count],
+    0
+)
+---------------------------------------------------------------------------------------------------------------------
+Gross Profit = 
+SUM('adventure_works_dw fact_sales'[SalesAmount])
+    - SUM('adventure_works_dw fact_sales'[TotalProductCost])
+---------------------------------------------------------------------------------------------------------------------
+Gross Profit Margin % = 
+DIVIDE(
+    [Gross Profit],
+    [Total Sales],
+    0
+)
+---------------------------------------------------------------------------------------------------------------------
+Internet Gross Profit = 
+CALCULATE(
+    [Gross Profit],
+    'adventure_works_dw fact_sales'[SalesChannel] = "Internet"
+)
+---------------------------------------------------------------------------------------------------------------------
+Internet Gross Profit Margin % = 
+DIVIDE(
+    [Internet Gross Profit],
+    [Internet Sales],
+    0
+)
+---------------------------------------------------------------------------------------------------------------------
+Internet Sales = 
+CALCULATE(
+    [Total Sales],
+    'adventure_works_dw fact_sales'[SalesChannel] = "Internet"
+)
+---------------------------------------------------------------------------------------------------------------------
+Internet Sales % = 
+DIVIDE(
+    [Internet Sales],
+    [Total Sales],
+    0
+)
+---------------------------------------------------------------------------------------------------------------------
+Previous Year Sales = 
+CALCULATE(
+    [Total Sales],
+    DATEADD(
+        'adventure_works_dw dim_date'[Date],
+        -1,
+        YEAR
+    )
+)
+---------------------------------------------------------------------------------------------------------------------
+Product Category Sales % = 
+DIVIDE(
+    [Total Sales],
+    CALCULATE(
+        [Total Sales],
+        ALL(
+            'adventure_works_dw dim_product'[Category]
+        )
+    ),
+    0
+)
+---------------------------------------------------------------------------------------------------------------------
+Product Gross Profit Margin % = 
+DIVIDE(
+    [Gross Profit],
+    [Total Sales],
+    0
+)
+---------------------------------------------------------------------------------------------------------------------
+Reseller Gross Profit = 
+CALCULATE(
+    [Gross Profit],
+    'adventure_works_dw fact_sales'[SalesChannel] = "Reseller"
+)
+---------------------------------------------------------------------------------------------------------------------
+Reseller Gross Profit Margin % = 
+DIVIDE(
+    [Reseller Gross Profit],
+    [Reseller Sales],
+    0
+)
+---------------------------------------------------------------------------------------------------------------------
+Reseller Sales = 
+CALCULATE(
+    [Total Sales],
+    'adventure_works_dw fact_sales'[SalesChannel] = "Reseller"
+)
+---------------------------------------------------------------------------------------------------------------------
+Reseller Sales % = 
+DIVIDE(
+    [Reseller Sales],
+    [Total Sales],
+    0
+)
+---------------------------------------------------------------------------------------------------------------------
+Sales YoY Growth % = 
+VAR CurrentYearSales =
+    [Total Sales]
+VAR PreviousYearSales =
+    CALCULATE(
+        [Total Sales],
+        DATEADD(
+            'adventure_works_dw dim_date'[Date],
+            -1,
+            YEAR
+        )
+    )
+RETURN
+    DIVIDE(
+        CurrentYearSales - PreviousYearSales,
+        PreviousYearSales,
+        0
+    )
+---------------------------------------------------------------------------------------------------------------------
+Territory Average Order Value = 
+DIVIDE(
+    [Total Sales],
+    [Total Orders],
+    0
+)
+---------------------------------------------------------------------------------------------------------------------
+Territory Sales Performance = 
+[Total Sales]
+---------------------------------------------------------------------------------------------------------------------
+Total Discount = 
+SUM('adventure_works_dw fact_sales'[DiscountAmount])
+---------------------------------------------------------------------------------------------------------------------
+Total Freight = 
+SUM('adventure_works_dw fact_sales'[Freight])
+---------------------------------------------------------------------------------------------------------------------
+Total Orders = 
+DISTINCTCOUNT(
+    'adventure_works_dw fact_sales'[SalesOrderNumber]
+)
+---------------------------------------------------------------------------------------------------------------------
+Total Product Cost = 
+SUM('adventure_works_dw fact_sales'[TotalProductCost])
+---------------------------------------------------------------------------------------------------------------------
+Total Products = 
+DISTINCTCOUNT(
+    'adventure_works_dw fact_sales'[ProductKey]
+)
+---------------------------------------------------------------------------------------------------------------------
+Total Sales = 
+SUM('adventure_works_dw fact_sales'[SalesAmount])
+---------------------------------------------------------------------------------------------------------------------
+Total Sales by Reseller = 
+CALCULATE(
+    [Total Sales],
+    'adventure_works_dw fact_sales'[SalesChannel] = "Reseller"
+)
+---------------------------------------------------------------------------------------------------------------------
+Total Sales Growth = 
+[Total Sales] - [Previous Year Sales]
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Total Sales Lines = 
+COUNTROWS('adventure_works_dw fact_sales')

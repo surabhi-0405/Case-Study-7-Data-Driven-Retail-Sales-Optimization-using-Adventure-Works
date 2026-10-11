@@ -1,1 +1,447 @@
+CREATE DATABASE adventure_works_dw;
+USE adventure_works_dw;
+-----------------------------------------------------------------------------------------------------------------
+USE adventure_works_dw;
+
+-- ============================================================
+-- 1. DIM CUSTOMER
+-- ============================================================
+CREATE TABLE dim_customer (
+    CustomerKey INT PRIMARY KEY,
+    GeographyKey INT,
+    CustomerName VARCHAR(150),
+    BirthDate DATE,
+    MaritalStatus VARCHAR(10),
+    Gender VARCHAR(10),
+    EmailAddress VARCHAR(150),
+    YearlyIncome DECIMAL(15,2),
+    Education VARCHAR(100),
+    Occupation VARCHAR(100),
+    HouseOwnerFlag INT,
+    Address VARCHAR(255),
+    FirstPurchaseDate DATE,
+    Age INT,
+    AgeGroup VARCHAR(20)
+);
+
+-- ============================================================
+-- 2. DIM EMPLOYEE
+-- ============================================================
+CREATE TABLE dim_employee (
+    EmployeeKey INT PRIMARY KEY,
+    ParentEmployeeKey INT NULL,
+    SalesTerritoryKey INT,
+    EmployeeName VARCHAR(150),
+    Title VARCHAR(150),
+    EmailAddress VARCHAR(150),
+    DepartmentName VARCHAR(100),
+    HireDate DATE,
+    BirthDate DATE
+);
+
+-- ============================================================
+-- 3. DIM GEOGRAPHY
+-- ============================================================
+CREATE TABLE dim_geography (
+    GeographyKey INT PRIMARY KEY,
+    City VARCHAR(100),
+    State VARCHAR(100),
+    Country VARCHAR(100),
+    PostalCode VARCHAR(20),
+    SalesTerritoryKey INT
+);
+
+-- ============================================================
+-- 4. DIM PRODUCT
+-- ============================================================
+CREATE TABLE dim_product (
+    ProductKey INT PRIMARY KEY,
+    ProductSubcategoryKey INT,
+    Product VARCHAR(150),
+    Color VARCHAR(50),
+    Model VARCHAR(100),
+    Subcategory VARCHAR(100),
+    Category VARCHAR(100)
+);
+
+-- ============================================================
+-- 5. DIM RESELLER
+-- ============================================================
+CREATE TABLE dim_reseller (
+    ResellerKey INT PRIMARY KEY,
+    GeographyKey INT,
+    BusinessType VARCHAR(100),
+    ResellerName VARCHAR(150)
+);
+
+-- ============================================================
+-- 6. DIM SALES TERRITORY
+-- ============================================================
+CREATE TABLE dim_sales_territory (
+    SalesTerritoryKey INT PRIMARY KEY,
+    SalesTerritoryRegion VARCHAR(100),
+    SalesTerritoryCountry VARCHAR(100),
+    SalesTerritoryGroup VARCHAR(100)
+);
+
+-- ============================================================
+-- 7. DIM DATE
+-- ============================================================
+CREATE TABLE dim_date (
+    Date DATE PRIMARY KEY,
+    Year INT,
+    Quarter VARCHAR(5),
+    MonthNumber INT,
+    MonthName VARCHAR(20),
+    YearMonth VARCHAR(10),
+    Day INT,
+    DayName VARCHAR(20),
+    WeekNumber INT
+);
+-----------------------------------------------------------------------------------------------------------------
+USE adventure_works_dw;
+
+CREATE TABLE fact_sales (
+    SalesKey BIGINT AUTO_INCREMENT PRIMARY KEY,
+    ProductKey INT NOT NULL,
+    CustomerKey INT NULL,
+    ResellerKey INT NULL,
+    EmployeeKey INT NULL,
+    SalesTerritoryKey INT NOT NULL,
+    SalesOrderNumber VARCHAR(30) NOT NULL,
+    SalesOrderLineNumber INT NOT NULL,
+    DiscountAmount DECIMAL(18,4) NOT NULL,
+    TotalProductCost DECIMAL(18,4) NOT NULL,
+    SalesAmount DECIMAL(18,4) NOT NULL,
+    Freight DECIMAL(18,4) NOT NULL,
+    CarrierTrackingNumber VARCHAR(50) NULL,
+    OrderDate DATE NOT NULL,
+    DueDate DATE NOT NULL,
+    ShipDate DATE NOT NULL,
+    SalesChannel VARCHAR(20) NOT NULL
+);
+-----------------------------------------------------------------------------------------------------------------
+USE adventure_works_dw;
+
+SELECT 'dim_customer' AS TableName, COUNT(*) AS RowCount FROM dim_customer
+UNION ALL
+SELECT 'dim_employee', COUNT(*) FROM dim_employee
+UNION ALL
+SELECT 'dim_geography', COUNT(*) FROM dim_geography
+UNION ALL
+SELECT 'dim_product', COUNT(*) FROM dim_product
+UNION ALL
+SELECT 'dim_reseller', COUNT(*) FROM dim_reseller
+UNION ALL
+SELECT 'dim_sales_territory', COUNT(*) FROM dim_sales_territory
+UNION ALL
+SELECT 'dim_date', COUNT(*) FROM dim_date
+UNION ALL
+SELECT 'fact_sales', COUNT(*) FROM fact_sales;
+-----------------------------------------------------------------------------------------------------------------
+USE adventure_works_dw;
+
+SELECT
+    COUNT(*) AS RowCount,
+    COUNT(DISTINCT CustomerKey) AS UniqueCustomerKeys,
+    MIN(CustomerKey) AS MinCustomerKey,
+    MAX(CustomerKey) AS MaxCustomerKey
+FROM dim_customer;
+-----------------------------------------------------------------------------------------------------------------
+USE adventure_works_dw;
+
+LOAD DATA LOCAL INFILE 'C:/Users/Rutuja/Downloads/fact_sales.csv'
+INTO TABLE fact_sales
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS
+(
+    ProductKey,
+    @CustomerKey,
+    @ResellerKey,
+    @EmployeeKey,
+    SalesTerritoryKey,
+    SalesOrderNumber,
+    SalesOrderLineNumber,
+    DiscountAmount,
+    TotalProductCost,
+    SalesAmount,
+    Freight,
+    @CarrierTrackingNumber,
+    OrderDate,
+    DueDate,
+    ShipDate,
+    SalesChannel
+)
+SET
+    CustomerKey = NULLIF(@CustomerKey, ''),
+    ResellerKey = NULLIF(@ResellerKey, ''),
+    EmployeeKey = NULLIF(@EmployeeKey, ''),
+    CarrierTrackingNumber = NULLIF(@CarrierTrackingNumber, '');
+-----------------------------------------------------------------------------------------------------------------
+CREATE TABLE fact_sales_staging (
+    ProductKey VARCHAR(20),
+    CustomerKey VARCHAR(20),
+    ResellerKey VARCHAR(20),
+    EmployeeKey VARCHAR(20),
+    SalesTerritoryKey VARCHAR(20),
+    SalesOrderNumber VARCHAR(30),
+    SalesOrderLineNumber VARCHAR(20),
+    DiscountAmount VARCHAR(30),
+    TotalProductCost VARCHAR(30),
+    SalesAmount VARCHAR(30),
+    Freight VARCHAR(30),
+    OrderDate VARCHAR(30),
+    DueDate VARCHAR(30),
+    ShipDate VARCHAR(30),
+    SalesChannel VARCHAR(20)
+);
+
+-----------------------------------------------------------------------------------------------------------------
+SELECT COUNT(*) AS RowCount
+FROM adventure_works_dw.fact_sales_staging;
+-----------------------------------------------------------------------------------------------------------------
+USE adventure_works_dw;
+
+INSERT INTO fact_sales (
+    ProductKey,
+    CustomerKey,
+    ResellerKey,
+    EmployeeKey,
+    SalesTerritoryKey,
+    SalesOrderNumber,
+    SalesOrderLineNumber,
+    DiscountAmount,
+    TotalProductCost,
+    SalesAmount,
+    Freight,
+    OrderDate,
+    DueDate,
+    ShipDate,
+    SalesChannel
+)
+SELECT
+    CAST(ProductKey AS UNSIGNED),
+    NULLIF(CustomerKey, ''),
+    NULLIF(ResellerKey, ''),
+    NULLIF(EmployeeKey, ''),
+    CAST(SalesTerritoryKey AS UNSIGNED),
+    SalesOrderNumber,
+    CAST(SalesOrderLineNumber AS UNSIGNED),
+    CAST(DiscountAmount AS DECIMAL(18,4)),
+    CAST(TotalProductCost AS DECIMAL(18,4)),
+    CAST(SalesAmount AS DECIMAL(18,4)),
+    CAST(Freight AS DECIMAL(18,4)),
+    STR_TO_DATE(OrderDate, '%Y-%m-%d'),
+    STR_TO_DATE(DueDate, '%Y-%m-%d'),
+    STR_TO_DATE(ShipDate, '%Y-%m-%d'),
+    SalesChannel
+FROM fact_sales_staging;
+-----------------------------------------------------------------------------------------------------------------
+SELECT
+    COUNT(*) AS RowCount,
+    COUNT(DISTINCT SalesOrderNumber) AS TotalOrders,
+    COUNT(DISTINCT CONCAT(SalesOrderNumber, '-', SalesOrderLineNumber)) AS UniqueOrderLines
+FROM adventure_works_dw.fact_sales;
+-----------------------------------------------------------------------------------------------------------------
+SELECT
+    SalesChannel,
+    COUNT(*) AS SalesLines,
+    COUNT(DISTINCT SalesOrderNumber) AS Orders,
+    SUM(SalesAmount) AS TotalSales,
+    COUNT(CustomerKey) AS CustomerRows,
+    COUNT(ResellerKey) AS ResellerRows,
+    COUNT(EmployeeKey) AS EmployeeRows
+FROM adventure_works_dw.fact_sales
+GROUP BY SalesChannel;
+-----------------------------------------------------------------------------------------------------------------
+USE adventure_works_dw;
+
+SELECT 'dim_customer' AS TableName, COUNT(*) AS RowCount FROM dim_customer
+UNION ALL
+SELECT 'dim_employee', COUNT(*) FROM dim_employee
+UNION ALL
+SELECT 'dim_geography', COUNT(*) FROM dim_geography
+UNION ALL
+SELECT 'dim_product', COUNT(*) FROM dim_product
+UNION ALL
+SELECT 'dim_reseller', COUNT(*) FROM dim_reseller
+UNION ALL
+SELECT 'dim_sales_territory', COUNT(*) FROM dim_sales_territory
+UNION ALL
+SELECT 'dim_date', COUNT(*) FROM dim_date
+UNION ALL
+SELECT 'fact_sales', COUNT(*) FROM fact_sales;
+-----------------------------------------------------------------------------------------------------------------
+SELECT
+    MIN(EmployeeKey) AS MinEmployeeKey,
+    MAX(EmployeeKey) AS MaxEmployeeKey,
+    COUNT(*) AS EmployeeCount,
+    COUNT(DISTINCT EmployeeKey) AS UniqueEmployeeKeys
+FROM adventure_works_dw.dim_employee;
+-----------------------------------------------------------------------------------------------------------------
+SELECT EmployeeKey
+FROM adventure_works_dw.dim_employee
+ORDER BY EmployeeKey;
+-----------------------------------------------------------------------------------------------------------------
+SELECT *
+FROM adventure_works_dw.dim_employee
+ORDER BY EmployeeKey;
+-----------------------------------------------------------------------------------------------------------------
+SELECT COUNT(*) AS RowCount
+FROM adventure_works_dw.dim_employee;
+-----------------------------------------------------------------------------------------------------------------
+USE adventure_works_dw;
+
+SELECT *
+FROM dim_employee
+WHERE EmployeeKey = 112;
+-----------------------------------------------------------------------------------------------------------------
+USE adventure_works_dw;
+
+INSERT INTO dim_employee (
+    EmployeeKey,
+    ParentEmployeeKey,
+    SalesTerritoryKey,
+    EmployeeName,
+    Title,
+    EmailAddress,
+    DepartmentName,
+    HireDate,
+    BirthDate
+)
+VALUES (
+    112,
+    NULL,
+    11,
+    'Ken Sánchez',
+    'Chief Executive Officer',
+    'ken0@adventure-works.com',
+    'Executive',
+    '2008-08-14',
+    '1968-08-29'
+);
+-----------------------------------------------------------------------------------------------------------------
+SELECT
+    COUNT(*) AS TotalEmployees,
+    COUNT(DISTINCT EmployeeKey) AS UniqueEmployeeKeys
+FROM dim_employee;
+-----------------------------------------------------------------------------------------------------------------
+USE adventure_works_dw;
+
+SELECT 'dim_customer' AS TableName, COUNT(*) AS TotalRows
+FROM dim_customer
+
+UNION ALL
+SELECT 'dim_employee', COUNT(*) FROM dim_employee
+
+UNION ALL
+SELECT 'dim_geography', COUNT(*) FROM dim_geography
+
+UNION ALL
+SELECT 'dim_product', COUNT(*) FROM dim_product
+
+UNION ALL
+SELECT 'dim_reseller', COUNT(*) FROM dim_reseller
+
+UNION ALL
+SELECT 'dim_sales_territory', COUNT(*) FROM dim_sales_territory
+
+UNION ALL
+SELECT 'dim_date', COUNT(*) FROM dim_date
+
+UNION ALL
+SELECT 'fact_sales', COUNT(*) FROM fact_sales;
+-----------------------------------------------------------------------------------------------------------------
+USE adventure_works_dw;
+
+SELECT
+    'ProductKey' AS ForeignKeyName,
+    COUNT(*) AS InvalidRows
+FROM fact_sales f
+LEFT JOIN dim_product d
+    ON f.ProductKey = d.ProductKey
+WHERE d.ProductKey IS NULL
+
+UNION ALL
+
+SELECT
+    'CustomerKey',
+    COUNT(*)
+FROM fact_sales f
+LEFT JOIN dim_customer d
+    ON f.CustomerKey = d.CustomerKey
+WHERE f.CustomerKey IS NOT NULL
+  AND d.CustomerKey IS NULL
+
+UNION ALL
+
+SELECT
+    'ResellerKey',
+    COUNT(*)
+FROM fact_sales f
+LEFT JOIN dim_reseller d
+    ON f.ResellerKey = d.ResellerKey
+WHERE f.ResellerKey IS NOT NULL
+  AND d.ResellerKey IS NULL
+
+UNION ALL
+
+SELECT
+    'EmployeeKey',
+    COUNT(*)
+FROM fact_sales f
+LEFT JOIN dim_employee d
+    ON f.EmployeeKey = d.EmployeeKey
+WHERE f.EmployeeKey IS NOT NULL
+  AND d.EmployeeKey IS NULL
+
+UNION ALL
+
+SELECT
+    'SalesTerritoryKey',
+    COUNT(*)
+FROM fact_sales f
+LEFT JOIN dim_sales_territory d
+    ON f.SalesTerritoryKey = d.SalesTerritoryKey
+WHERE d.SalesTerritoryKey IS NULL
+
+UNION ALL
+
+SELECT
+    'OrderDate',
+    COUNT(*)
+FROM fact_sales f
+LEFT JOIN dim_date d
+    ON f.OrderDate = d.Date
+WHERE d.Date IS NULL;
+-----------------------------------------------------------------------------------------------------------------
+USE adventure_works_dw;
+
+SELECT
+    SalesChannel,
+    COUNT(*) AS TotalSalesLines,
+    COUNT(DISTINCT SalesOrderNumber) AS TotalOrders,
+    ROUND(SUM(SalesAmount), 2) AS TotalSales,
+    ROUND(SUM(TotalProductCost), 2) AS TotalProductCost,
+    ROUND(SUM(SalesAmount - TotalProductCost), 2) AS GrossProfit
+FROM fact_sales
+GROUP BY SalesChannel
+ORDER BY SalesChannel;
+-----------------------------------------------------------------------------------------------------------------
+USE adventure_works_dw;
+
+SELECT
+    COUNT(*) AS TotalSalesLines,
+    COUNT(DISTINCT SalesOrderNumber) AS TotalOrders,
+    ROUND(SUM(SalesAmount), 2) AS TotalSales,
+    ROUND(SUM(TotalProductCost), 2) AS TotalProductCost,
+    ROUND(SUM(SalesAmount - TotalProductCost), 2) AS GrossProfit,
+    ROUND(
+        SUM(SalesAmount - TotalProductCost)
+        / NULLIF(SUM(SalesAmount), 0) * 100,
+        2
+    ) AS GrossProfitMarginPct
+FROM fact_sales;
 
